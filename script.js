@@ -376,11 +376,34 @@ function generateNewWords(combo, existingWords, rowCount) {
   return fillRowsWithFallback(loweredCombo, existingWords, candidates, rowCount);
 }
 
+function buildWordListForRows(combo, sampleWords, rowCount) {
+  const normalizedSamples = uniqueWords(sampleWords.map((word) => word.trim()).filter(Boolean));
+
+  if (normalizedSamples.length >= rowCount) {
+    return normalizedSamples.slice(0, rowCount);
+  }
+
+  const additionalNeeded = rowCount - normalizedSamples.length;
+  const generatedWords = generateNewWords(combo, normalizedSamples, additionalNeeded * 2);
+  const existingSet = new Set(normalizedSamples.map((word) => word.toLowerCase()));
+
+  const additionalWords = [];
+  generatedWords.forEach((word) => {
+    const lowered = word.toLowerCase();
+    if (!existingSet.has(lowered) && additionalWords.length < additionalNeeded) {
+      additionalWords.push(word);
+      existingSet.add(lowered);
+    }
+  });
+
+  return [...normalizedSamples, ...additionalWords].slice(0, rowCount);
+}
+
 function buildCombinationPage(seriesName, className, combo, words, rowCount) {
   const page = document.createElement("article");
   page.className = "page";
 
-  const rows = repeatToLength(words, rowCount);
+  const rows = buildWordListForRows(combo, words, rowCount);
 
   page.innerHTML = `
     <div class="page-header">
