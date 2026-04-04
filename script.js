@@ -103,7 +103,10 @@ function setBuildLabel() {
 
 function toEditorLines(combinations) {
   return combinations
-    .map((item) => `${item.seriesName}|${item.combo}|${item.words.join(",")}`)
+    .map((item) => {
+      const base = `${item.seriesName}|${item.combo}|${item.words.join(",")}`;
+      return item.rowCount ? `${base}|${item.rowCount}` : base;
+    })
     .join("\n");
 }
 
@@ -112,14 +115,16 @@ function buildDefaultCombinations() {
     seriesName: "Blue",
     className: "blue",
     combo: item.combo,
-    words: item.words
+    words: item.words,
+    rowCount: null
   }));
 
   const green = GREEN_SERIES.map((item) => ({
     seriesName: "Green",
     className: "green",
     combo: item.combo,
-    words: item.words
+    words: item.words,
+    rowCount: null
   }));
 
   return [...blue, ...green];
@@ -155,13 +160,16 @@ function parseCustomCombinations(inputText) {
     let seriesNameRaw = "Custom";
     let comboRaw = "";
     let wordsRaw = "";
+    let rowCountRaw = "";
 
-    if (parts.length === 3) {
+    if (parts.length === 4) {
+      [seriesNameRaw, comboRaw, wordsRaw, rowCountRaw] = parts;
+    } else if (parts.length === 3) {
       [seriesNameRaw, comboRaw, wordsRaw] = parts;
     } else if (parts.length === 2) {
       [comboRaw, wordsRaw] = parts;
     } else {
-      throw new Error(`Line ${index + 1}: use Series|Combination|word1,word2 OR Combination|word1,word2`);
+      throw new Error(`Line ${index + 1}: use Series|Combination|word1,word2|rows OR Combination|word1,word2`);
     }
 
     const words = wordsRaw
@@ -173,12 +181,22 @@ function parseCustomCombinations(inputText) {
       throw new Error(`Line ${index + 1}: series, combination, and words are required.`);
     }
 
+    let rowCount = null;
+    if (rowCountRaw) {
+      const parsed = Number(rowCountRaw);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new Error(`Line ${index + 1}: rows must be a positive whole number.`);
+      }
+      rowCount = parsed;
+    }
+
     const cleanSeries = seriesNameRaw[0].toUpperCase() + seriesNameRaw.slice(1).toLowerCase();
     return {
       seriesName: cleanSeries,
       className: mapSeriesToClass(cleanSeries),
       combo: comboRaw,
-      words
+      words,
+      rowCount
     };
   });
 }
@@ -194,10 +212,36 @@ function repeatToLength(words, targetLength) {
 function generateNewWords(combo, existingWords, rowCount) {
   const loweredCombo = combo.trim().toLowerCase();
   const existingSet = new Set(existingWords.map((word) => word.toLowerCase()));
+  const sampleAvgLength = Math.round(
+    existingWords.reduce((sum, word) => sum + word.length, 0) / Math.max(existingWords.length, 1)
+  );
+
+  const sampleStarts = new Set(existingWords.map((word) => word[0]?.toLowerCase()).filter(Boolean));
+  const sampleEnds = new Set(existingWords.map((word) => word.slice(-1).toLowerCase()).filter(Boolean));
 
   const candidates = WORD_BANK
     .filter((word) => word.toLowerCase().includes(loweredCombo))
-    .filter((word) => !existingSet.has(word.toLowerCase()));
+    .filter((word) => !existingSet.has(word.toLowerCase()))
+    .map((word) => {
+      const lowered = word.toLowerCase();
+      let score = 0;
+      score += 12 - Math.min(Math.abs(word.length - sampleAvgLength), 12);
+      if (sampleStarts.has(lowered[0])) {
+        score += 4;
+      }
+      if (sampleEnds.has(lowered.slice(-1))) {
+        score += 4;
+      }
+      if (lowered.startsWith(loweredCombo)) {
+        score += 3;
+      }
+      if (lowered.endsWith(loweredCombo)) {
+        score += 3;
+      }
+      return { word, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.word);
 
   if (!candidates.length) {
     return Array.from({ length: rowCount }, () => "");
@@ -310,7 +354,8 @@ function renderWorkbook() {
 
   activeCombinations.forEach((item) => {
     const label = item.seriesName.endsWith("Series") ? item.seriesName : `${item.seriesName} Series`;
-    workbookContainer.appendChild(buildCombinationPage(label, item.className, item.combo, item.words, rowCount));
+    const comboRows = item.rowCount || rowCount;
+    workbookContainer.appendChild(buildCombinationPage(label, item.className, item.combo, item.words, comboRows));
   });
 
   let sightWords = [];
