@@ -385,13 +385,13 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
 
   page.innerHTML = `
     <div class="page-header">
-      <h2 class="page-title">${combo} Words Practice</h2>
+      <h2 class="page-title">${combo} words</h2>
       <span class="tag ${className}">${seriesName}</span>
     </div>
     <table class="practice-table">
       <thead>
         <tr>
-          <th>Word List</th>
+          <th>${combo} words - list</th>
           <th>Practice Same Words</th>
           <th>Make New Words (${combo})</th>
         </tr>
