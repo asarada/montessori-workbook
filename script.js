@@ -40,7 +40,18 @@ const SIGHT_WORDS_GRADE_2 = [
 ];
 
 const EXTERNAL_DICTIONARY_URL = "https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt";
-const COMMON_WORDS_URL = "https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/20k.txt";
+const COMMON_WORDS_URL = "https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/google-10000-english-no-swears.txt";
+
+const COMBO_PRIORITY_WORDS = {
+  nk: ["bank", "bunk", "sink", "pink", "wink", "tank", "thank", "think", "drink", "stink", "trunk", "blank", "blink", "honk"],
+  sh: ["ship", "shop", "shut", "shed", "fish", "dish", "wish", "wash", "brush", "flash"],
+  ch: ["chat", "chip", "chin", "chop", "much", "lunch", "bench", "beach", "peach", "latch"],
+  th: ["thin", "this", "that", "three", "bath", "path", "math", "teeth", "thumb", "with"],
+  oa: ["boat", "coat", "goat", "soap", "road", "toad", "toast", "float", "coach"],
+  ai: ["rain", "train", "mail", "tail", "paint", "chain", "brain", "trail", "snail", "wait"],
+  ee: ["tree", "seed", "feet", "green", "sheep", "sleep", "street", "cheek", "beep"],
+  oo: ["book", "look", "cook", "foot", "moon", "spoon", "pool", "school", "tooth", "room"]
+};
 
 const WORD_BANK = [
   "cat", "bat", "hat", "mat", "rat", "flat", "chat", "that", "sat", "pat", "fat", "trap",
@@ -284,6 +295,37 @@ function uniqueWords(words) {
   return [...new Set(words.filter(Boolean))];
 }
 
+function isMontessoriGradeWord(word, combo) {
+  const lowered = word.toLowerCase();
+  if (!/^[a-z]+$/.test(lowered)) {
+    return false;
+  }
+
+  if (lowered.length < 3 || lowered.length > 9) {
+    return false;
+  }
+
+  if (!lowered.includes(combo)) {
+    return false;
+  }
+
+  // Reject advanced morphology to keep early-elementary readability.
+  if (/(tion|sion|ture|ment|ness|ingly|ology|ation|fully|lessly|ization)/.test(lowered)) {
+    return false;
+  }
+
+  const vowelGroups = (lowered.match(/[aeiouy]+/g) || []).length;
+  if (vowelGroups > 3) {
+    return false;
+  }
+
+  if (/[^aeiouy]{4,}/.test(lowered)) {
+    return false;
+  }
+
+  return true;
+}
+
 function buildPatternFallbackCandidates(combo, existingWords) {
   const prefixSet = new Set(["b", "c", "d", "f", "g", "h", "l", "m", "n", "p", "r", "s", "t", "w", "bl", "cl", "fl", "pl", "sl", "st", "tr", "dr", "gr"]);
   const suffixSet = new Set(["a", "e", "i", "o", "u", "ed", "er", "y", "s", "t", "k", "n", "nd", "nt", "mp", "nk", "sh", "ch", "th"]);
@@ -333,16 +375,21 @@ function generateNewWords(combo, existingWords, rowCount) {
     ? [...gradeStandardWords]
     : [...WORD_BANK, ...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2].map((word) => word.toLowerCase());
 
-  const scoredCandidates = uniqueWords(sourceWords)
+  const priorityWords = (COMBO_PRIORITY_WORDS[loweredCombo] || []).map((word) => word.toLowerCase());
+  const mergedSource = uniqueWords([...priorityWords, ...sourceWords]);
+
+  const scoredCandidates = mergedSource
     .filter((word) => word.toLowerCase().includes(loweredCombo))
-    .filter((word) => /^[a-z]+$/.test(word))
-    .filter((word) => word.length >= 3 && word.length <= 9)
+    .filter((word) => isMontessoriGradeWord(word, loweredCombo))
     .filter((word) => !existingSet.has(word.toLowerCase()))
     .map((word) => {
       const lowered = word.toLowerCase();
       const comboIndex = lowered.indexOf(loweredCombo);
       let score = 0;
       score += 12 - Math.min(Math.abs(word.length - sampleAvgLength), 12);
+      if (priorityWords.includes(lowered)) {
+        score += 8;
+      }
       const position = comboIndex === 0
         ? "start"
         : comboIndex === lowered.length - loweredCombo.length
