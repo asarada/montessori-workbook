@@ -40,6 +40,7 @@ const SIGHT_WORDS_GRADE_2 = [
 ];
 
 const EXTERNAL_DICTIONARY_URL = "https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt";
+const COMMON_WORDS_URL = "https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/20k.txt";
 
 const WORD_BANK = [
   "cat", "bat", "hat", "mat", "rat", "flat", "chat", "that", "sat", "pat", "fat", "trap",
@@ -83,6 +84,8 @@ let activeCombinations = [];
 let externalDictionaryWords = [];
 let externalDictionaryLoaded = false;
 let externalDictionaryLoadPromise = null;
+let commonWordsSet = new Set();
+let gradeStandardWords = [];
 
 function showEditorMessage(message, isError = false) {
   editorMessage.textContent = message;
@@ -101,23 +104,49 @@ async function ensureExternalDictionaryLoaded() {
 
   externalDictionaryLoadPromise = (async () => {
     try {
-      showEditorMessage("Loading external dictionary (first time may take a few seconds)...", false);
-      const response = await fetch(EXTERNAL_DICTIONARY_URL);
-      if (!response.ok) {
-        throw new Error(`Dictionary load failed (${response.status})`);
+      showEditorMessage("Loading grade-standard word sources (first time may take a few seconds)...", false);
+
+      const [dictionaryResponse, commonResponse] = await Promise.all([
+        fetch(EXTERNAL_DICTIONARY_URL),
+        fetch(COMMON_WORDS_URL)
+      ]);
+
+      if (!dictionaryResponse.ok) {
+        throw new Error(`Dictionary load failed (${dictionaryResponse.status})`);
+      }
+      if (!commonResponse.ok) {
+        throw new Error(`Common word list load failed (${commonResponse.status})`);
       }
 
-      const text = await response.text();
+      const text = await dictionaryResponse.text();
+      const commonText = await commonResponse.text();
+
+      commonWordsSet = new Set(
+        commonText
+          .split("\n")
+          .map((word) => word.trim().toLowerCase())
+          .filter((word) => /^[a-z]+$/.test(word))
+      );
+
       externalDictionaryWords = text
         .split("\n")
         .map((word) => word.trim().toLowerCase())
         .filter((word) => /^[a-z]{2,15}$/.test(word));
 
+      gradeStandardWords = uniqueWords(
+        externalDictionaryWords
+          .filter((word) => commonWordsSet.has(word))
+          .filter((word) => word.length >= 3 && word.length <= 9)
+      );
+
       externalDictionaryLoaded = true;
-      showEditorMessage(`External dictionary loaded (${externalDictionaryWords.length.toLocaleString()} words).`, false);
+      showEditorMessage(
+        `Grade-standard dictionary loaded (${gradeStandardWords.length.toLocaleString()} filtered words).`,
+        false
+      );
     } catch (error) {
       showEditorMessage(
-        `Could not load external dictionary. Using built-in list only. (${error.message})`,
+        `Could not load external word sources. Using built-in list only. (${error.message})`,
         true
       );
     }
@@ -300,40 +329,75 @@ function generateNewWords(combo, existingWords, rowCount) {
     existingWords.reduce((sum, word) => sum + word.length, 0) / Math.max(existingWords.length, 1)
   );
 
-  const sampleStarts = new Set(existingWords.map((word) => word[0]?.toLowerCase()).filter(Boolean));
-  const sampleEnds = new Set(existingWords.map((word) => word.slice(-1).toLowerCase()).filter(Boolean));
+  const sourceWords = externalDictionaryLoaded && gradeStandardWords.length
+    ? [...gradeStandardWords]
+    : [...WORD_BANK, ...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2].map((word) => word.toLowerCase());
 
-  const sourceWords = externalDictionaryLoaded
-    ? [...externalDictionaryWords, ...WORD_BANK]
-    : [...WORD_BANK];
-
-  const candidates = sourceWords
+  const scoredCandidates = uniqueWords(sourceWords)
     .filter((word) => word.toLowerCase().includes(loweredCombo))
     .filter((word) => /^[a-z]+$/.test(word))
-    .filter((word) => word.length >= 3 && word.length <= 10)
+    .filter((word) => word.length >= 3 && word.length <= 9)
     .filter((word) => !existingSet.has(word.toLowerCase()))
     .map((word) => {
       const lowered = word.toLowerCase();
+      const comboIndex = lowered.indexOf(loweredCombo);
       let score = 0;
       score += 12 - Math.min(Math.abs(word.length - sampleAvgLength), 12);
-      if (sampleStarts.has(lowered[0])) {
-        score += 4;
-      }
-      if (sampleEnds.has(lowered.slice(-1))) {
-        score += 4;
-      }
-      if (lowered.startsWith(loweredCombo)) {
-        score += 3;
-      }
-      if (lowered.endsWith(loweredCombo)) {
-        score += 3;
-      }
-      return { word, score };
-    })
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.word);
+      const position = comboIndex === 0
+        ? "start"
+        : comboIndex === lowered.length - loweredCombo.length
+          ? "end"
+          : "middle";
 
-  return uniqueWords(candidates).slice(0, rowCount);
+      if (position === "middle") {
+        score += 2;
+      }
+
+      return { word, score, position };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const pools = {
+    start: scoredCandidates.filter((item) => item.position === "start").map((item) => item.word),
+    middle: scoredCandidates.filter((item) => item.position === "middle").map((item) => item.word),
+    end: scoredCandidates.filter((item) => item.position === "end").map((item) => item.word)
+  };
+
+  const result = [];
+  const used = new Set();
+  const order = ["middle", "start", "end"];
+
+  // Round-robin to enforce beginning/middle/end variation where available.
+  while (result.length < rowCount) {
+    let addedInPass = false;
+
+    order.forEach((bucket) => {
+      if (result.length >= rowCount) {
+        return;
+      }
+
+      while (pools[bucket].length) {
+        const candidate = pools[bucket].shift();
+        const lowered = candidate.toLowerCase();
+        if (!used.has(lowered)) {
+          const last = result[result.length - 1] || "";
+          // Prefer changing starting letter across adjacent selections.
+          if (!last || last[0] !== candidate[0] || pools[bucket].length === 0) {
+            result.push(candidate);
+            used.add(lowered);
+            addedInPass = true;
+            break;
+          }
+        }
+      }
+    });
+
+    if (!addedInPass) {
+      break;
+    }
+  }
+
+  return result.slice(0, rowCount);
 }
 
 function buildWordListForRows(combo, sampleWords, rowCount) {
