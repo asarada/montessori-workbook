@@ -50,12 +50,30 @@ const applyCustomBtn = document.getElementById("applyCustomBtn");
 const loadDefaultsBtn = document.getElementById("loadDefaultsBtn");
 const editorMessage = document.getElementById("editorMessage");
 const stats = document.getElementById("stats");
+const buildLabel = document.getElementById("buildLabel");
 
 let activeCombinations = [];
 
 function showEditorMessage(message, isError = false) {
   editorMessage.textContent = message;
   editorMessage.classList.toggle("error", isError);
+}
+
+function setBuildLabel() {
+  if (!buildLabel) {
+    return;
+  }
+
+  const scriptTag = document.querySelector('script[src*="script.js"]');
+  if (!scriptTag) {
+    buildLabel.textContent = " | Build: unknown";
+    return;
+  }
+
+  const scriptSrc = scriptTag.getAttribute("src") || "";
+  const versionMatch = scriptSrc.match(/[?&]v=([^&]+)/);
+  const version = versionMatch ? versionMatch[1] : "unversioned";
+  buildLabel.textContent = ` | Build: ${version}`;
 }
 
 function toEditorLines(combinations) {
@@ -374,4 +392,5 @@ if (rowsPerPage) {
 window.applyWorkbookCustom = applyCustomCombinations;
 window.downloadWorkbookWord = downloadWordDocument;
 
+setBuildLabel();
 loadDefaultCombinations();
