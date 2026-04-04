@@ -684,6 +684,20 @@ function applyCustomCombinations() {
   })();
 }
 
+function regenerateFromCurrentInput() {
+  return (async () => {
+    try {
+      await ensureExternalDictionaryLoaded();
+      activeCombinations = parseCustomCombinations(combinationInput.value);
+      renderWorkbook();
+      showEditorMessage(`Regenerated ${activeCombinations.length} combination page(s).`, false);
+    } catch (error) {
+      // If current input is invalid, keep existing pages and report the issue.
+      showEditorMessage(`Regenerate failed: ${error.message}`, true);
+    }
+  })();
+}
+
 function loadDefaultCombinations() {
   activeCombinations = buildDefaultCombinations();
   combinationInput.value = toEditorLines(activeCombinations);
@@ -692,7 +706,7 @@ function loadDefaultCombinations() {
 }
 
 if (regenerateBtn) {
-  regenerateBtn.addEventListener("click", renderWorkbook);
+  regenerateBtn.addEventListener("click", regenerateFromCurrentInput);
 }
 if (printBtn) {
   printBtn.addEventListener("click", () => window.print());
@@ -716,6 +730,7 @@ if (rowsPerPage) {
 // Provide global fallbacks for inline onclick handlers.
 window.applyWorkbookCustom = applyCustomCombinations;
 window.downloadWorkbookWord = downloadWordDocument;
+window.regenerateWorkbookPages = regenerateFromCurrentInput;
 
 setBuildLabel();
 ensureExternalDictionaryLoaded();
