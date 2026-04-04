@@ -39,6 +39,8 @@ const SIGHT_WORDS_GRADE_2 = [
   "wash", "which", "why", "wish", "work", "would", "write", "your"
 ];
 
+const EXTERNAL_DICTIONARY_URL = "https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt";
+
 const WORD_BANK = [
   "cat", "bat", "hat", "mat", "rat", "flat", "chat", "that", "sat", "pat", "fat", "trap",
   "can", "fan", "man", "pan", "ran", "tan", "van", "sand", "plant", "handle", "animal",
@@ -78,10 +80,50 @@ const stats = document.getElementById("stats");
 const buildLabel = document.getElementById("buildLabel");
 
 let activeCombinations = [];
+let externalDictionaryWords = [];
+let externalDictionaryLoaded = false;
+let externalDictionaryLoadPromise = null;
 
 function showEditorMessage(message, isError = false) {
   editorMessage.textContent = message;
   editorMessage.classList.toggle("error", isError);
+}
+
+async function ensureExternalDictionaryLoaded() {
+  if (externalDictionaryLoaded) {
+    return;
+  }
+
+  if (externalDictionaryLoadPromise) {
+    await externalDictionaryLoadPromise;
+    return;
+  }
+
+  externalDictionaryLoadPromise = (async () => {
+    try {
+      showEditorMessage("Loading external dictionary (first time may take a few seconds)...", false);
+      const response = await fetch(EXTERNAL_DICTIONARY_URL);
+      if (!response.ok) {
+        throw new Error(`Dictionary load failed (${response.status})`);
+      }
+
+      const text = await response.text();
+      externalDictionaryWords = text
+        .split("\n")
+        .map((word) => word.trim().toLowerCase())
+        .filter((word) => /^[a-z]{2,15}$/.test(word));
+
+      externalDictionaryLoaded = true;
+      showEditorMessage(`External dictionary loaded (${externalDictionaryWords.length.toLocaleString()} words).`, false);
+    } catch (error) {
+      showEditorMessage(
+        `Could not load external dictionary. Using built-in list only. (${error.message})`,
+        true
+      );
+    }
+  })();
+
+  await externalDictionaryLoadPromise;
 }
 
 function setBuildLabel() {
@@ -303,7 +345,11 @@ function generateNewWords(combo, existingWords, rowCount) {
   const sampleStarts = new Set(existingWords.map((word) => word[0]?.toLowerCase()).filter(Boolean));
   const sampleEnds = new Set(existingWords.map((word) => word.slice(-1).toLowerCase()).filter(Boolean));
 
-  const candidates = WORD_BANK
+  const sourceWords = externalDictionaryLoaded
+    ? [...externalDictionaryWords, ...WORD_BANK]
+    : [...WORD_BANK];
+
+  const candidates = sourceWords
     .filter((word) => word.toLowerCase().includes(loweredCombo))
     .filter((word) => !existingSet.has(word.toLowerCase()))
     .map((word) => {
@@ -517,17 +563,20 @@ function downloadWordDocument() {
 }
 
 function applyCustomCombinations() {
-  try {
-    activeCombinations = parseCustomCombinations(combinationInput.value);
-    renderWorkbook();
-    showEditorMessage(`Applied ${activeCombinations.length} custom combinations.`, false);
-    if (!activeCombinations.length) {
-      alert("No valid combinations were applied. Please check your input format.");
+  return (async () => {
+    try {
+      await ensureExternalDictionaryLoaded();
+      activeCombinations = parseCustomCombinations(combinationInput.value);
+      renderWorkbook();
+      showEditorMessage(`Applied ${activeCombinations.length} custom combinations.`, false);
+      if (!activeCombinations.length) {
+        alert("No valid combinations were applied. Please check your input format.");
+      }
+    } catch (error) {
+      showEditorMessage(error.message, true);
+      alert(`Could not apply combinations: ${error.message}`);
     }
-  } catch (error) {
-    showEditorMessage(error.message, true);
-    alert(`Could not apply combinations: ${error.message}`);
-  }
+  })();
 }
 
 function loadDefaultCombinations() {
@@ -564,4 +613,5 @@ window.applyWorkbookCustom = applyCustomCombinations;
 window.downloadWorkbookWord = downloadWordDocument;
 
 setBuildLabel();
+ensureExternalDictionaryLoaded();
 loadDefaultCombinations();
