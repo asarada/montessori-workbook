@@ -53,15 +53,6 @@ const stats = document.getElementById("stats");
 
 let activeCombinations = [];
 
-function escapeHtml(input) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 function showEditorMessage(message, isError = false) {
   editorMessage.textContent = message;
   editorMessage.classList.toggle("error", isError);
@@ -115,14 +106,23 @@ function parseCustomCombinations(inputText) {
   }
 
   return lines.map((line, index) => {
-    const parts = line.split("|").map((part) => part.trim());
-    if (parts.length !== 3) {
-      throw new Error(`Line ${index + 1}: use Series|Combination|word1,word2`);
+    const normalizedLine = line.replace(/\s+-\s+/, "|").replace(/\s*:\s*/, "|");
+    const parts = normalizedLine.split("|").map((part) => part.trim());
+
+    let seriesNameRaw = "Custom";
+    let comboRaw = "";
+    let wordsRaw = "";
+
+    if (parts.length === 3) {
+      [seriesNameRaw, comboRaw, wordsRaw] = parts;
+    } else if (parts.length === 2) {
+      [comboRaw, wordsRaw] = parts;
+    } else {
+      throw new Error(`Line ${index + 1}: use Series|Combination|word1,word2 OR Combination|word1,word2`);
     }
 
-    const [seriesNameRaw, comboRaw, wordsRaw] = parts;
     const words = wordsRaw
-      .split(",")
+      .split(/[,;]+/)
       .map((word) => word.trim())
       .filter(Boolean);
 
@@ -307,9 +307,19 @@ function downloadWordDocument() {
 
   const blob = new Blob(["\ufeff", documentHtml], { type: "application/msword" });
   const url = URL.createObjectURL(blob);
+
+  // Safari on some devices ignores download attribute for blob links; open as fallback.
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isSafari) {
+    window.open(url, "_blank");
+    showEditorMessage("Opened document preview. Use Share/Save to store it as a Word file.", false);
+    return;
+  }
+
   const link = document.createElement("a");
   link.href = url;
   link.download = "montessori-workbook.doc";
+  link.style.display = "none";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -334,12 +344,26 @@ function loadDefaultCombinations() {
   showEditorMessage("Loaded default Blue and Green combinations.", false);
 }
 
-regenerateBtn.addEventListener("click", renderWorkbook);
-printBtn.addEventListener("click", () => window.print());
-downloadWordBtn.addEventListener("click", downloadWordDocument);
-applyCustomBtn.addEventListener("click", applyCustomCombinations);
-loadDefaultsBtn.addEventListener("click", loadDefaultCombinations);
-gradeFilter.addEventListener("change", renderWorkbook);
-rowsPerPage.addEventListener("change", renderWorkbook);
+if (regenerateBtn) {
+  regenerateBtn.addEventListener("click", renderWorkbook);
+}
+if (printBtn) {
+  printBtn.addEventListener("click", () => window.print());
+}
+if (downloadWordBtn) {
+  downloadWordBtn.addEventListener("click", downloadWordDocument);
+}
+if (applyCustomBtn) {
+  applyCustomBtn.addEventListener("click", applyCustomCombinations);
+}
+if (loadDefaultsBtn) {
+  loadDefaultsBtn.addEventListener("click", loadDefaultCombinations);
+}
+if (gradeFilter) {
+  gradeFilter.addEventListener("change", renderWorkbook);
+}
+if (rowsPerPage) {
+  rowsPerPage.addEventListener("change", renderWorkbook);
+}
 
 loadDefaultCombinations();
