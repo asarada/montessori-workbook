@@ -257,6 +257,18 @@ main {
   font-size: 0.95rem;
 }
 
+.sight-table .sight-col-word {
+  width: 28%;
+}
+
+.sight-table .sight-col-practice {
+  width: 22%;
+}
+
+.sight-table .sight-col-sentence {
+  width: 50%;
+}
+
 .practice-line,
 .new-word-line {
   border-bottom: 1px dashed #6c93b2;

@@ -530,7 +530,12 @@ function buildSightWordPage(words, label) {
       <h2 class="page-title">Sight Words Practice (${label})</h2>
       <span class="tag sight">Sight Words</span>
     </div>
-    <table class="practice-table">
+    <table class="practice-table sight-table">
+      <colgroup>
+        <col class="sight-col-word" />
+        <col class="sight-col-practice" />
+        <col class="sight-col-sentence" />
+      </colgroup>
       <thead>
         <tr>
           <th>Sight Word</th>
