@@ -552,9 +552,6 @@ function buildSightWordPage(words, label) {
           .join("")}
       </tbody>
     </table>
-    <div class="sight-grid">
-      ${words.map((word) => `<div class="sight-card">${word}</div>`).join("")}
-    </div>
   `;
 
   return page;
@@ -593,6 +590,8 @@ function renderWorkbook() {
   } else {
     sightWords = [...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2];
   }
+
+  sightWords = uniqueWords(sightWords);
 
   const sightChunks = chunkArray(sightWords, rowCount);
   sightChunks.forEach((chunk, index) => {
