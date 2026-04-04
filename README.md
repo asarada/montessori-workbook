@@ -37,3 +37,32 @@ You can align these lists exactly with your Montessori Blue and Green sequence.
 git add .
 git commit -m "Initial Montessori workbook builder"
 ```
+
+## Publish as a website (free)
+
+### Option 1: GitHub Pages (recommended)
+
+1. Create a new GitHub repository from the browser (for example: `montessori-workbook`).
+2. Connect your local project and push:
+
+```bash
+git remote add origin https://github.com/<your-username>/montessori-workbook.git
+git push -u origin main
+```
+
+3. On GitHub, open your repository:
+   - Go to **Settings** -> **Pages**
+   - Under **Build and deployment**, choose:
+     - **Source**: Deploy from a branch
+     - **Branch**: `main` and `/ (root)`
+   - Save
+
+4. Wait about 1-2 minutes, then your site will be live at:
+
+`https://<your-username>.github.io/montessori-workbook/`
+
+### Option 2: Netlify Drop (fastest, no Git needed)
+
+1. Open https://app.netlify.com/drop
+2. Drag this project folder into the page.
+3. Netlify gives you a live URL instantly.
