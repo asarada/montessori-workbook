@@ -106,7 +106,7 @@ function parseCustomCombinations(inputText) {
   }
 
   return lines.map((line, index) => {
-    const normalizedLine = line.replace(/\s+-\s+/, "|").replace(/\s*:\s*/, "|");
+    const normalizedLine = line.replace(/\s*[-:]\s*/, "|");
     const parts = normalizedLine.split("|").map((part) => part.trim());
 
     let seriesNameRaw = "Custom";
@@ -332,8 +332,12 @@ function applyCustomCombinations() {
     activeCombinations = parseCustomCombinations(combinationInput.value);
     renderWorkbook();
     showEditorMessage(`Applied ${activeCombinations.length} custom combinations.`, false);
+    if (!activeCombinations.length) {
+      alert("No valid combinations were applied. Please check your input format.");
+    }
   } catch (error) {
     showEditorMessage(error.message, true);
+    alert(`Could not apply combinations: ${error.message}`);
   }
 }
 
@@ -365,5 +369,9 @@ if (gradeFilter) {
 if (rowsPerPage) {
   rowsPerPage.addEventListener("change", renderWorkbook);
 }
+
+// Provide global fallbacks for inline onclick handlers.
+window.applyWorkbookCustom = applyCustomCombinations;
+window.downloadWorkbookWord = downloadWordDocument;
 
 loadDefaultCombinations();

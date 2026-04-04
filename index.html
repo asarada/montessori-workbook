@@ -46,7 +46,7 @@
 
       <button id="regenerateBtn" type="button">Regenerate Pages</button>
       <button id="printBtn" type="button">Print Workbook</button>
-      <button id="downloadWordBtn" type="button">Download Word (.doc)</button>
+      <button id="downloadWordBtn" type="button" onclick="window.downloadWorkbookWord && window.downloadWorkbookWord()">Download Word (.doc)</button>
     </section>
 
     <section class="custom-editor" aria-label="Custom combinations editor">
@@ -57,7 +57,7 @@
       </p>
       <textarea id="combinationInput" rows="10" spellcheck="false"></textarea>
       <div class="editor-actions">
-        <button id="applyCustomBtn" type="button">Apply Custom Combinations</button>
+        <button id="applyCustomBtn" type="button" onclick="window.applyWorkbookCustom && window.applyWorkbookCustom()">Apply Custom Combinations</button>
         <button id="loadDefaultsBtn" type="button">Load Default Combinations</button>
       </div>
       <p id="editorMessage" class="editor-message" aria-live="polite"></p>
@@ -72,6 +72,6 @@
       Tip: Edit word lists in script.js to fully match your school sequence.
     </footer>
 
-    <script src="script.js?v=bf60d4c"></script>
+    <script src="script.js?v=applyfix1"></script>
   </body>
 </html>
