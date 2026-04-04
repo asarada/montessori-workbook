@@ -81,13 +81,63 @@ h1 {
   max-width: 980px;
   margin: 0 auto 1rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(190px, 1fr)) auto auto;
+  grid-template-columns: repeat(2, minmax(190px, 1fr)) auto auto auto;
   gap: 0.75rem;
   align-items: end;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 0.9rem;
+}
+
+.custom-editor {
+  max-width: 980px;
+  margin: 0 auto 1rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: 0 10px 30px rgba(14, 62, 98, 0.1);
+}
+
+.custom-editor h2 {
+  margin: 0 0 0.4rem;
+  font-family: "Baloo 2", cursive;
+}
+
+.editor-help {
+  margin: 0 0 0.6rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+#combinationInput {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-family: "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.editor-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.editor-message {
+  margin: 0.7rem 0 0;
+  font-weight: 700;
+  color: #1f6f47;
+}
+
+.editor-message.error {
+  color: #9b2226;
 }
 
 .control-group {
@@ -181,6 +231,10 @@ main {
 
 .tag.sight {
   background: #a65e00;
+}
+
+.tag.custom {
+  background: #22577a;
 }
 
 .practice-table {

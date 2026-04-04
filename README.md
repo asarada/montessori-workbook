@@ -7,6 +7,8 @@ This is a simple learning project website that generates printable spelling work
 - Blue Series combination pages (phonetic combinations)
 - Green Series combination pages (digraphs and vowel teams)
 - Sight words pages after all combinations
+- Custom combination editor (you can define your own sequence)
+- Editable Word export (`.doc`) for further changes
 - One practice page format per combination:
   - Word list
   - Practice same words
@@ -19,6 +21,20 @@ No build tools needed.
 1. Open `index.html` in your browser.
 2. Choose grade level and rows-per-page.
 3. Click **Print Workbook**.
+
+## Custom combinations format
+
+Use one line per combination:
+
+`Series|Combination|word1,word2,word3`
+
+Example:
+
+`Blue|sh|ship,shop,shell,fish`
+
+Then click **Apply Custom Combinations**.
+
+Use **Download Word (.doc)** to download an editable workbook file for Microsoft Word.
 
 ## Customize content
 

@@ -46,6 +46,21 @@
 
       <button id="regenerateBtn" type="button">Regenerate Pages</button>
       <button id="printBtn" type="button">Print Workbook</button>
+      <button id="downloadWordBtn" type="button">Download Word (.doc)</button>
+    </section>
+
+    <section class="custom-editor" aria-label="Custom combinations editor">
+      <h2>Custom Combination Setup</h2>
+      <p class="editor-help">
+        One line per combination using: <strong>Series|Combination|word1,word2,word3</strong><br />
+        Example: <strong>Blue|sh|ship,shop,shell,fish</strong>
+      </p>
+      <textarea id="combinationInput" rows="10" spellcheck="false"></textarea>
+      <div class="editor-actions">
+        <button id="applyCustomBtn" type="button">Apply Custom Combinations</button>
+        <button id="loadDefaultsBtn" type="button">Load Default Combinations</button>
+      </div>
+      <p id="editorMessage" class="editor-message" aria-live="polite"></p>
     </section>
 
     <main>

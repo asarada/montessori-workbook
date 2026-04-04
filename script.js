@@ -44,7 +44,101 @@ const gradeFilter = document.getElementById("gradeFilter");
 const rowsPerPage = document.getElementById("rowsPerPage");
 const regenerateBtn = document.getElementById("regenerateBtn");
 const printBtn = document.getElementById("printBtn");
+const downloadWordBtn = document.getElementById("downloadWordBtn");
+const combinationInput = document.getElementById("combinationInput");
+const applyCustomBtn = document.getElementById("applyCustomBtn");
+const loadDefaultsBtn = document.getElementById("loadDefaultsBtn");
+const editorMessage = document.getElementById("editorMessage");
 const stats = document.getElementById("stats");
+
+let activeCombinations = [];
+
+function escapeHtml(input) {
+  return input
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function showEditorMessage(message, isError = false) {
+  editorMessage.textContent = message;
+  editorMessage.classList.toggle("error", isError);
+}
+
+function toEditorLines(combinations) {
+  return combinations
+    .map((item) => `${item.seriesName}|${item.combo}|${item.words.join(",")}`)
+    .join("\n");
+}
+
+function buildDefaultCombinations() {
+  const blue = BLUE_SERIES.map((item) => ({
+    seriesName: "Blue",
+    className: "blue",
+    combo: item.combo,
+    words: item.words
+  }));
+
+  const green = GREEN_SERIES.map((item) => ({
+    seriesName: "Green",
+    className: "green",
+    combo: item.combo,
+    words: item.words
+  }));
+
+  return [...blue, ...green];
+}
+
+function mapSeriesToClass(seriesName) {
+  const normalized = seriesName.trim().toLowerCase();
+  if (normalized === "blue") {
+    return "blue";
+  }
+
+  if (normalized === "green") {
+    return "green";
+  }
+
+  return "custom";
+}
+
+function parseCustomCombinations(inputText) {
+  const lines = inputText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    throw new Error("Please add at least one combination line.");
+  }
+
+  return lines.map((line, index) => {
+    const parts = line.split("|").map((part) => part.trim());
+    if (parts.length !== 3) {
+      throw new Error(`Line ${index + 1}: use Series|Combination|word1,word2`);
+    }
+
+    const [seriesNameRaw, comboRaw, wordsRaw] = parts;
+    const words = wordsRaw
+      .split(",")
+      .map((word) => word.trim())
+      .filter(Boolean);
+
+    if (!seriesNameRaw || !comboRaw || words.length === 0) {
+      throw new Error(`Line ${index + 1}: series, combination, and words are required.`);
+    }
+
+    const cleanSeries = seriesNameRaw[0].toUpperCase() + seriesNameRaw.slice(1).toLowerCase();
+    return {
+      seriesName: cleanSeries,
+      className: mapSeriesToClass(cleanSeries),
+      combo: comboRaw,
+      words
+    };
+  });
+}
 
 function repeatToLength(words, targetLength) {
   const result = [];
@@ -150,12 +244,9 @@ function renderWorkbook() {
 
   workbookContainer.innerHTML = "";
 
-  BLUE_SERIES.forEach((item) => {
-    workbookContainer.appendChild(buildCombinationPage("Blue Series", "blue", item.combo, item.words, rowCount));
-  });
-
-  GREEN_SERIES.forEach((item) => {
-    workbookContainer.appendChild(buildCombinationPage("Green Series", "green", item.combo, item.words, rowCount));
+  activeCombinations.forEach((item) => {
+    const label = item.seriesName.endsWith("Series") ? item.seriesName : `${item.seriesName} Series`;
+    workbookContainer.appendChild(buildCombinationPage(label, item.className, item.combo, item.words, rowCount));
   });
 
   let sightWords = [];
@@ -176,14 +267,79 @@ function renderWorkbook() {
     workbookContainer.appendChild(buildSightWordPage(chunk, `${sightLabel} - Page ${index + 1}`));
   });
 
-  const totalCombinationPages = BLUE_SERIES.length + GREEN_SERIES.length;
+  const totalCombinationPages = activeCombinations.length;
   const totalSightPages = sightChunks.length;
   stats.textContent = `Total pages: ${totalCombinationPages + totalSightPages} (${totalCombinationPages} combinations + ${totalSightPages} sight words)`;
 }
 
+function downloadWordDocument() {
+  const workbookHtml = workbookContainer.innerHTML;
+  if (!workbookHtml.trim()) {
+    showEditorMessage("Generate workbook pages before downloading.", true);
+    return;
+  }
+
+  const documentHtml = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>Montessori Workbook</title>
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; color: #16324f; }
+          .page { page-break-after: always; border: 1px solid #bfd6ea; padding: 12px; margin-bottom: 12px; }
+          .page-title { margin: 0 0 8px; font-size: 20px; }
+          .practice-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          .practice-table th, .practice-table td { border: 1px solid #89adc9; padding: 6px; height: 30px; text-align: left; vertical-align: middle; }
+          .practice-table th { background: #f2f8fd; }
+          .practice-line, .new-word-line { border-bottom: 1px dashed #6c93b2; min-height: 16px; }
+          .practice-word { font-weight: 700; color: #2f5a7c; }
+          .sight-grid { margin-top: 8px; display: table; width: 100%; }
+          .sight-card { border: 1px dashed #7e9fb9; display: inline-block; width: 22%; padding: 6px; margin: 4px; text-align: center; font-weight: 700; }
+          .tag { font-size: 11px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        <h1>Montessori Spelling Workbook</h1>
+        ${workbookHtml}
+      </body>
+    </html>
+  `;
+
+  const blob = new Blob(["\ufeff", documentHtml], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "montessori-workbook.doc";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showEditorMessage("Downloaded editable Word file (.doc).", false);
+}
+
+function applyCustomCombinations() {
+  try {
+    activeCombinations = parseCustomCombinations(combinationInput.value);
+    renderWorkbook();
+    showEditorMessage(`Applied ${activeCombinations.length} custom combinations.`, false);
+  } catch (error) {
+    showEditorMessage(error.message, true);
+  }
+}
+
+function loadDefaultCombinations() {
+  activeCombinations = buildDefaultCombinations();
+  combinationInput.value = toEditorLines(activeCombinations);
+  renderWorkbook();
+  showEditorMessage("Loaded default Blue and Green combinations.", false);
+}
+
 regenerateBtn.addEventListener("click", renderWorkbook);
 printBtn.addEventListener("click", () => window.print());
+downloadWordBtn.addEventListener("click", downloadWordDocument);
+applyCustomBtn.addEventListener("click", applyCustomCombinations);
+loadDefaultsBtn.addEventListener("click", loadDefaultCombinations);
 gradeFilter.addEventListener("change", renderWorkbook);
 rowsPerPage.addEventListener("change", renderWorkbook);
 
-renderWorkbook();
+loadDefaultCombinations();
