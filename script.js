@@ -209,8 +209,92 @@ function repeatToLength(words, targetLength) {
   return result;
 }
 
+function uniqueWords(words) {
+  return [...new Set(words.filter(Boolean))];
+}
+
+function buildPatternFallbackCandidates(combo, existingWords) {
+  const prefixSet = new Set(["b", "c", "d", "f", "g", "h", "l", "m", "n", "p", "r", "s", "t", "w", "bl", "cl", "fl", "pl", "sl", "st", "tr", "dr", "gr"]);
+  const suffixSet = new Set(["a", "e", "i", "o", "u", "ed", "er", "y", "s", "t", "k", "n", "nd", "nt", "mp", "nk", "sh", "ch", "th"]);
+
+  existingWords.forEach((sample) => {
+    const lowered = sample.toLowerCase();
+    const idx = lowered.indexOf(combo);
+    if (idx === -1) {
+      return;
+    }
+
+    const samplePrefix = lowered.slice(0, idx);
+    const sampleSuffix = lowered.slice(idx + combo.length);
+    if (samplePrefix) {
+      prefixSet.add(samplePrefix);
+    }
+    if (sampleSuffix) {
+      suffixSet.add(sampleSuffix);
+    }
+  });
+
+  const out = [];
+  prefixSet.forEach((p) => {
+    out.push(`${p}${combo}`);
+    suffixSet.forEach((s) => out.push(`${p}${combo}${s}`));
+  });
+
+  suffixSet.forEach((s) => {
+    out.push(`${combo}${s}`);
+  });
+
+  return uniqueWords(out).filter((word) => /^[a-z]+$/.test(word));
+}
+
+function fillRowsWithFallback(combo, existingWords, baseCandidates, rowCount) {
+  const loweredExisting = new Set(existingWords.map((word) => word.toLowerCase()));
+  const output = [];
+  const used = new Set();
+
+  baseCandidates.forEach((word) => {
+    const lowered = word.toLowerCase();
+    if (!loweredExisting.has(lowered) && !used.has(lowered) && output.length < rowCount) {
+      output.push(word);
+      used.add(lowered);
+    }
+  });
+
+  if (output.length < rowCount) {
+    const patternCandidates = buildPatternFallbackCandidates(combo, existingWords);
+    patternCandidates.forEach((word) => {
+      const lowered = word.toLowerCase();
+      if (!loweredExisting.has(lowered) && !used.has(lowered) && output.length < rowCount) {
+        output.push(word);
+        used.add(lowered);
+      }
+    });
+  }
+
+  // Final safety net: generate phonics-friendly forms so every row gets a value.
+  const letters = ["a", "e", "i", "o", "u", "b", "c", "d", "f", "g", "h", "l", "m", "n", "p", "r", "s", "t", "w", "y"];
+  let i = 0;
+  while (output.length < rowCount) {
+    const left = letters[i % letters.length];
+    const right = letters[(i + 7) % letters.length];
+    const made = i % 2 === 0 ? `${left}${combo}${right}` : `${left}${right}${combo}`;
+    const lowered = made.toLowerCase();
+    if (!loweredExisting.has(lowered) && !used.has(lowered)) {
+      output.push(made);
+      used.add(lowered);
+    }
+    i += 1;
+  }
+
+  return output;
+}
+
 function generateNewWords(combo, existingWords, rowCount) {
-  const loweredCombo = combo.trim().toLowerCase();
+  const loweredCombo = combo.trim().toLowerCase().replace(/[^a-z]/g, "");
+  if (!loweredCombo) {
+    return Array.from({ length: rowCount }, (_, index) => `word${index + 1}`);
+  }
+
   const existingSet = new Set(existingWords.map((word) => word.toLowerCase()));
   const sampleAvgLength = Math.round(
     existingWords.reduce((sum, word) => sum + word.length, 0) / Math.max(existingWords.length, 1)
@@ -243,11 +327,7 @@ function generateNewWords(combo, existingWords, rowCount) {
     .sort((a, b) => b.score - a.score)
     .map((item) => item.word);
 
-  if (!candidates.length) {
-    return Array.from({ length: rowCount }, () => "");
-  }
-
-  return repeatToLength(candidates, rowCount);
+  return fillRowsWithFallback(loweredCombo, existingWords, candidates, rowCount);
 }
 
 function buildCombinationPage(seriesName, className, combo, words, rowCount) {
