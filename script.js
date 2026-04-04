@@ -39,6 +39,31 @@ const SIGHT_WORDS_GRADE_2 = [
   "wash", "which", "why", "wish", "work", "would", "write", "your"
 ];
 
+const WORD_BANK = [
+  "cat", "bat", "hat", "mat", "rat", "flat", "chat", "that", "sat", "pat", "fat", "trap",
+  "can", "fan", "man", "pan", "ran", "tan", "van", "sand", "plant", "handle", "animal",
+  "cap", "map", "nap", "tap", "lap", "snap", "clap", "happy", "apple", "grape",
+  "pin", "fin", "win", "chin", "spin", "thin", "print", "bring", "inside",
+  "sip", "lip", "rip", "tip", "dip", "chip", "slip", "trip", "skip", "grip",
+  "pig", "dig", "wig", "fig", "big", "twig", "gift", "light", "night",
+  "hot", "pot", "cot", "dot", "spot", "plot", "clock", "stone", "robot",
+  "hop", "top", "mop", "cop", "pop", "shop", "stop", "drop", "crop", "frog",
+  "cub", "tub", "rub", "club", "snub", "bubble", "subway", "public",
+  "bug", "rug", "mug", "hug", "jug", "plug", "snug", "slug", "thug", "drum",
+  "ship", "shop", "shed", "fish", "dish", "wish", "shell", "brush", "shark", "shine", "shut",
+  "chip", "chop", "chin", "chat", "bench", "lunch", "chair", "chick", "chase", "cheese",
+  "thin", "this", "that", "bath", "path", "math", "thumb", "three", "thunder", "thirsty",
+  "when", "what", "whip", "whale", "wheel", "white", "while", "whisk", "whisper",
+  "phone", "photo", "graph", "elephant", "dolphin", "alphabet", "sphere", "trophy",
+  "tree", "seed", "feet", "green", "sheep", "sleep", "street", "three", "cheek", "beet",
+  "boat", "coat", "soap", "road", "goat", "toad", "float", "throat", "coach", "toasty",
+  "rain", "train", "mail", "tail", "paint", "chair", "chain", "brain", "trail", "afraid",
+  "moon", "book", "look", "cook", "pool", "school", "spoon", "foot", "tooth", "room",
+  "car", "star", "park", "farm", "hard", "chart", "spark", "garden", "market", "shark",
+  "fork", "corn", "storm", "short", "horse", "torch", "north", "morning", "forest", "sport",
+  "her", "term", "fern", "verb", "river", "winter", "hammer", "sister", "butter", "number"
+];
+
 const workbookContainer = document.getElementById("workbook");
 const gradeFilter = document.getElementById("gradeFilter");
 const rowsPerPage = document.getElementById("rowsPerPage");
@@ -64,7 +89,7 @@ function setBuildLabel() {
     return;
   }
 
-  const scriptTag = document.querySelector('script[src*="script.js"]');
+  const scriptTag = document.getElementById("appScript") || document.querySelector('script[src*="script"]');
   if (!scriptTag) {
     buildLabel.textContent = " | Build: unknown";
     return;
@@ -166,11 +191,27 @@ function repeatToLength(words, targetLength) {
   return result;
 }
 
+function generateNewWords(combo, existingWords, rowCount) {
+  const loweredCombo = combo.trim().toLowerCase();
+  const existingSet = new Set(existingWords.map((word) => word.toLowerCase()));
+
+  const candidates = WORD_BANK
+    .filter((word) => word.toLowerCase().includes(loweredCombo))
+    .filter((word) => !existingSet.has(word.toLowerCase()));
+
+  if (!candidates.length) {
+    return Array.from({ length: rowCount }, () => "");
+  }
+
+  return repeatToLength(candidates, rowCount);
+}
+
 function buildCombinationPage(seriesName, className, combo, words, rowCount) {
   const page = document.createElement("article");
   page.className = "page";
 
   const rows = repeatToLength(words, rowCount);
+  const newWords = generateNewWords(combo, words, rowCount);
 
   page.innerHTML = `
     <div class="page-header">
@@ -188,7 +229,7 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
       <tbody>
         ${rows
           .map(
-            (word) => `
+            (word, index) => `
           <tr>
             <td>${word}</td>
             <td>
@@ -197,7 +238,12 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
                 <span class="new-word-line"></span>
               </div>
             </td>
-            <td><div class="new-word-line"></div></td>
+            <td>
+              <div class="practice-line">
+                <span class="practice-word">${newWords[index] || ""}</span>
+                <span class="new-word-line"></span>
+              </div>
+            </td>
           </tr>
         `
           )
