@@ -381,7 +381,6 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
   page.className = "page";
 
   const rows = repeatToLength(words, rowCount);
-  const newWords = generateNewWords(combo, words, rowCount);
 
   page.innerHTML = `
     <div class="page-header">
@@ -399,7 +398,7 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
       <tbody>
         ${rows
           .map(
-            (word, index) => `
+            (word) => `
           <tr>
             <td>${word}</td>
             <td>
@@ -408,12 +407,7 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
                 <span class="new-word-line"></span>
               </div>
             </td>
-            <td>
-              <div class="practice-line">
-                <span class="practice-word">${newWords[index] || ""}</span>
-                <span class="new-word-line"></span>
-              </div>
-            </td>
+            <td><div class="new-word-line"></div></td>
           </tr>
         `
           )
