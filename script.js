@@ -289,52 +289,10 @@ function buildPatternFallbackCandidates(combo, existingWords) {
   return uniqueWords(out).filter((word) => /^[a-z]+$/.test(word));
 }
 
-function fillRowsWithFallback(combo, existingWords, baseCandidates, rowCount) {
-  const loweredExisting = new Set(existingWords.map((word) => word.toLowerCase()));
-  const output = [];
-  const used = new Set();
-
-  baseCandidates.forEach((word) => {
-    const lowered = word.toLowerCase();
-    if (!loweredExisting.has(lowered) && !used.has(lowered) && output.length < rowCount) {
-      output.push(word);
-      used.add(lowered);
-    }
-  });
-
-  if (output.length < rowCount) {
-    const patternCandidates = buildPatternFallbackCandidates(combo, existingWords);
-    patternCandidates.forEach((word) => {
-      const lowered = word.toLowerCase();
-      if (!loweredExisting.has(lowered) && !used.has(lowered) && output.length < rowCount) {
-        output.push(word);
-        used.add(lowered);
-      }
-    });
-  }
-
-  // Final safety net: generate phonics-friendly forms so every row gets a value.
-  const letters = ["a", "e", "i", "o", "u", "b", "c", "d", "f", "g", "h", "l", "m", "n", "p", "r", "s", "t", "w", "y"];
-  let i = 0;
-  while (output.length < rowCount) {
-    const left = letters[i % letters.length];
-    const right = letters[(i + 7) % letters.length];
-    const made = i % 2 === 0 ? `${left}${combo}${right}` : `${left}${right}${combo}`;
-    const lowered = made.toLowerCase();
-    if (!loweredExisting.has(lowered) && !used.has(lowered)) {
-      output.push(made);
-      used.add(lowered);
-    }
-    i += 1;
-  }
-
-  return output;
-}
-
 function generateNewWords(combo, existingWords, rowCount) {
   const loweredCombo = combo.trim().toLowerCase().replace(/[^a-z]/g, "");
   if (!loweredCombo) {
-    return Array.from({ length: rowCount }, (_, index) => `word${index + 1}`);
+    return [];
   }
 
   const existingSet = new Set(existingWords.map((word) => word.toLowerCase()));
@@ -351,6 +309,8 @@ function generateNewWords(combo, existingWords, rowCount) {
 
   const candidates = sourceWords
     .filter((word) => word.toLowerCase().includes(loweredCombo))
+    .filter((word) => /^[a-z]+$/.test(word))
+    .filter((word) => word.length >= 3 && word.length <= 10)
     .filter((word) => !existingSet.has(word.toLowerCase()))
     .map((word) => {
       const lowered = word.toLowerCase();
@@ -373,7 +333,7 @@ function generateNewWords(combo, existingWords, rowCount) {
     .sort((a, b) => b.score - a.score)
     .map((item) => item.word);
 
-  return fillRowsWithFallback(loweredCombo, existingWords, candidates, rowCount);
+  return uniqueWords(candidates).slice(0, rowCount);
 }
 
 function buildWordListForRows(combo, sampleWords, rowCount) {
@@ -384,7 +344,7 @@ function buildWordListForRows(combo, sampleWords, rowCount) {
   }
 
   const additionalNeeded = rowCount - normalizedSamples.length;
-  const generatedWords = generateNewWords(combo, normalizedSamples, additionalNeeded * 2);
+  const generatedWords = generateNewWords(combo, normalizedSamples, additionalNeeded * 5);
   const existingSet = new Set(normalizedSamples.map((word) => word.toLowerCase()));
 
   const additionalWords = [];
@@ -396,7 +356,12 @@ function buildWordListForRows(combo, sampleWords, rowCount) {
     }
   });
 
-  return [...normalizedSamples, ...additionalWords].slice(0, rowCount);
+  const rows = [...normalizedSamples, ...additionalWords].slice(0, rowCount);
+  while (rows.length < rowCount) {
+    rows.push("");
+  }
+
+  return rows;
 }
 
 function buildCombinationPage(seriesName, className, combo, words, rowCount) {
@@ -496,6 +461,15 @@ function renderWorkbook() {
     workbookContainer.appendChild(buildCombinationPage(label, item.className, item.combo, item.words, comboRows));
   });
 
+  const shortRows = activeCombinations
+    .map((item) => {
+      const comboRows = item.rowCount || rowCount;
+      const list = buildWordListForRows(item.combo, item.words, comboRows);
+      const emptyCount = list.filter((word) => !word).length;
+      return emptyCount > 0 ? `${item.combo}: ${emptyCount} row(s) need manual fill` : "";
+    })
+    .filter(Boolean);
+
   let sightWords = [];
   let sightLabel = "Grade 1 + Grade 2";
 
@@ -517,6 +491,10 @@ function renderWorkbook() {
   const totalCombinationPages = activeCombinations.length;
   const totalSightPages = sightChunks.length;
   stats.textContent = `Total pages: ${totalCombinationPages + totalSightPages} (${totalCombinationPages} combinations + ${totalSightPages} sight words)`;
+
+  if (shortRows.length) {
+    showEditorMessage(`Note: Not enough strict dictionary matches for some combinations. ${shortRows.join(" | ")}`, true);
+  }
 }
 
 function downloadWordDocument() {
