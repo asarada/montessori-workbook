@@ -544,7 +544,7 @@ function buildSightWordPage(words, label) {
             (word) => `
           <tr>
             <td>${word}</td>
-            <td><div class="practice-line"><span class="practice-word">${word}</span><span class="new-word-line"></span></div></td>
+            <td><div class="new-word-line"></div></td>
             <td><div class="new-word-line"></div></td>
           </tr>
         `
