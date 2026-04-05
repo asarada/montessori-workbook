@@ -35,6 +35,18 @@ Example:
 
 Then click **Apply Custom Combinations**.
 
+You can also upload a `.txt` file in the Custom Combination Setup section.
+Each non-empty line should use one of these formats:
+
+- `Series|Combination|word1,word2,word3|Rows(optional)`
+- `Series|Combination|word1,word2,word3`
+- `Combination|word1,word2,word3`
+
+Notes:
+
+- Lines starting with `#` or `//` are treated as comments and ignored.
+- After loading a file, pages are generated automatically.
+
 You can also use **Start Voice Input** in the custom editor section and speak your lines.
 Tips for speaking symbols:
 

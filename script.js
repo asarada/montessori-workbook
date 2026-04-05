@@ -85,6 +85,8 @@ const regenerateBtn = document.getElementById("regenerateBtn");
 const printBtn = document.getElementById("printBtn");
 const downloadWordBtn = document.getElementById("downloadWordBtn");
 const combinationInput = document.getElementById("combinationInput");
+const combinationFileInput = document.getElementById("combinationFileInput");
+const loadFileBtn = document.getElementById("loadFileBtn");
 const applyCustomBtn = document.getElementById("applyCustomBtn");
 const loadDefaultsBtn = document.getElementById("loadDefaultsBtn");
 const editorMessage = document.getElementById("editorMessage");
@@ -538,6 +540,60 @@ function parseCustomCombinations(inputText) {
   });
 }
 
+function sanitizeUploadedContent(rawText) {
+  if (!rawText) {
+    return "";
+  }
+
+  return rawText
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#") && !line.startsWith("//"))
+    .join("\n");
+}
+
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Unable to read the selected file."));
+
+    reader.readAsText(file);
+  });
+}
+
+function loadCombinationsFromFile() {
+  return (async () => {
+    try {
+      if (!combinationFileInput || !combinationFileInput.files || !combinationFileInput.files.length) {
+        throw new Error("Please choose a .txt file first.");
+      }
+
+      const file = combinationFileInput.files[0];
+      const text = await readTextFile(file);
+      const cleanedText = sanitizeUploadedContent(text);
+
+      if (!cleanedText) {
+        throw new Error("The selected file is empty or contains only comments.");
+      }
+
+      // Validate the uploaded file using the same parser as manual custom input.
+      parseCustomCombinations(cleanedText);
+
+      combinationInput.value = cleanedText;
+      await applyCustomCombinations();
+      showEditorMessage(`Loaded combinations from ${file.name} and generated workbook pages.`, false);
+    } catch (error) {
+      showEditorMessage(`Could not load file: ${error.message}`, true);
+      alert(`Could not load combinations file: ${error.message}`);
+    }
+  })();
+}
+
 function repeatToLength(words, targetLength) {
   const result = [];
   for (let i = 0; i < targetLength; i += 1) {
@@ -974,6 +1030,9 @@ if (applyCustomBtn) {
 }
 if (loadDefaultsBtn) {
   loadDefaultsBtn.addEventListener("click", loadDefaultCombinations);
+}
+if (loadFileBtn) {
+  loadFileBtn.addEventListener("click", loadCombinationsFromFile);
 }
 if (gradeFilter) {
   gradeFilter.addEventListener("change", renderWorkbook);
