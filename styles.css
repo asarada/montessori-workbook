@@ -123,6 +123,55 @@ h1 {
   max-width: 100%;
 }
 
+.file-drop-zone {
+  border: 2px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin: 0 0 0.6rem;
+  background: #f7fbff;
+  color: var(--ink-soft);
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.file-drop-zone.active {
+  border-color: var(--accent);
+  background: #ebfff7;
+}
+
+.file-preview {
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--line);
+  background: #fbfeff;
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+
+.file-preview h3 {
+  margin: 0 0 0.45rem;
+  font-family: "Baloo 2", cursive;
+  font-size: 1.1rem;
+}
+
+.file-preview p {
+  margin: 0.2rem 0;
+  color: var(--ink-soft);
+}
+
+.file-preview pre {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem;
+  border-radius: 8px;
+  background: #f2f8fd;
+  border: 1px solid var(--line);
+  max-height: 150px;
+  overflow: auto;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
 .voice-controls {
   display: flex;
   align-items: center;
@@ -374,6 +423,10 @@ main {
 
   .file-upload-row {
     align-items: stretch;
+  }
+
+  .file-drop-zone {
+    text-align: left;
   }
 }
 

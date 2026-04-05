@@ -61,8 +61,14 @@
       <div class="file-upload-row" aria-label="Upload combination words file">
         <label for="combinationFileInput">Upload combinations text file</label>
         <input id="combinationFileInput" type="file" accept=".txt,text/plain" />
-        <button id="loadFileBtn" type="button">Load File</button>
+        <button id="downloadTemplateBtn" type="button">Download Sample .txt</button>
+        <button id="loadFileBtn" type="button">Preview File</button>
+        <button id="applyFileBtn" type="button" disabled>Use Preview &amp; Generate</button>
       </div>
+      <div id="fileDropZone" class="file-drop-zone" role="button" tabindex="0" aria-label="Drop text file here or click to select">
+        Drag and drop a .txt file here, or click to choose.
+      </div>
+      <div id="filePreview" class="file-preview" aria-live="polite"></div>
       <div class="voice-controls" aria-label="Voice input controls">
         <button id="startVoiceBtn" type="button">Start Voice Input</button>
         <button id="stopVoiceBtn" type="button" disabled>Stop</button>
@@ -97,6 +103,6 @@
       <span id="buildLabel"></span>
     </footer>
 
-    <script id="appScript" src="script.js?v=d4beb39"></script>
+    <script id="appScript" src="script.js?v=20260405d"></script>
   </body>
 </html>

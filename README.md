@@ -45,7 +45,9 @@ Each non-empty line should use one of these formats:
 Notes:
 
 - Lines starting with `#` or `//` are treated as comments and ignored.
-- After loading a file, pages are generated automatically.
+- You can drag and drop a `.txt` file into the drop zone.
+- Use **Preview File** to validate first, then click **Use Preview & Generate**.
+- Use **Download Sample .txt** to get a ready-made template file.
 
 You can also use **Start Voice Input** in the custom editor section and speak your lines.
 Tips for speaking symbols:
