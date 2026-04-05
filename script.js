@@ -91,6 +91,7 @@ const editorMessage = document.getElementById("editorMessage");
 const startVoiceBtn = document.getElementById("startVoiceBtn");
 const stopVoiceBtn = document.getElementById("stopVoiceBtn");
 const voiceMode = document.getElementById("voiceMode");
+const voiceLang = document.getElementById("voiceLang");
 const voiceStatus = document.getElementById("voiceStatus");
 const stats = document.getElementById("stats");
 const buildLabel = document.getElementById("buildLabel");
@@ -134,8 +135,10 @@ function normalizeVoiceTranscript(transcript) {
     .replace(/\b(new line|newline|line break|next line)\b/gi, "\n")
     .replace(/\b(pipe|vertical bar)\b/gi, "|")
     .replace(/\b(comma|coma)\b/gi, ",")
+    .replace(/\b(colon)\b/gi, ":")
     .replace(/\b(semicolon|semi colon)\b/gi, ";")
-    .replace(/\b(tab)\b/gi, "\t");
+    .replace(/\b(tab)\b/gi, "\t")
+    .replace(/\b(dot|full stop|period)\b/gi, ".");
 
   normalized = normalized.replace(/[ ]*\n[ ]*/g, "\n");
   normalized = normalized.replace(/[ \t]{2,}/g, " ").trim();
@@ -153,13 +156,17 @@ function addVoiceText(transcriptText) {
     combinationInput.value = spokenText;
     voiceHasReplacedText = true;
   } else {
-    const needsNewLine =
-      selectedMode === "append" &&
-      combinationInput.value.trim().length > 0 &&
-      !combinationInput.value.endsWith("\n") &&
-      !spokenText.startsWith("\n");
+    const currentText = combinationInput.value;
+    const hasExistingText = currentText.trim().length > 0;
+    const endsWithNewLine = currentText.endsWith("\n");
+    const startsWithNewLine = spokenText.startsWith("\n");
 
-    combinationInput.value += `${needsNewLine ? "\n" : ""}${spokenText}`;
+    let separator = "";
+    if (selectedMode === "append" && hasExistingText && !endsWithNewLine && !startsWithNewLine) {
+      separator = " ";
+    }
+
+    combinationInput.value += `${separator}${spokenText}`;
   }
 
   combinationInput.focus();
@@ -213,9 +220,10 @@ function initVoiceInput() {
   }
 
   speechRecognition = new SpeechRecognitionClass();
-  speechRecognition.lang = "en-US";
+  speechRecognition.lang = (voiceLang && voiceLang.value) || "en-IN";
   speechRecognition.continuous = true;
   speechRecognition.interimResults = false;
+  speechRecognition.maxAlternatives = 3;
 
   speechRecognition.onresult = (event) => {
     const lastResult = event.results[event.results.length - 1];
@@ -243,6 +251,22 @@ function initVoiceInput() {
 
   startVoiceBtn.addEventListener("click", startVoiceInput);
   stopVoiceBtn.addEventListener("click", stopVoiceInput);
+  if (voiceLang) {
+    voiceLang.addEventListener("change", () => {
+      if (!speechRecognition) {
+        return;
+      }
+
+      const isListeningNow = isVoiceListening;
+      if (isListeningNow) {
+        stopVoiceInput();
+      }
+
+      speechRecognition.lang = voiceLang.value || "en-IN";
+      setVoiceStatus(`Accent set to ${voiceLang.options[voiceLang.selectedIndex].text}.`, false);
+    });
+  }
+
   updateVoiceButtons();
 }
 

@@ -41,6 +41,8 @@ Tips for speaking symbols:
 - Say "pipe" for `|`
 - Say "comma" for `,`
 - Say "new line" for a line break
+- Set **Accent** to **Indian English** for better recognition of native Indian pronunciation
+- Normal pauses now continue in the same line (no forced new line unless you say "new line")
 
 Use **Download Word (.doc)** to download an editable workbook file for Microsoft Word.
 

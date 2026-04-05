@@ -66,6 +66,12 @@
           <option value="append" selected>Append to text</option>
           <option value="replace">Replace text</option>
         </select>
+        <label for="voiceLang" class="voice-mode-label">Accent</label>
+        <select id="voiceLang" aria-label="Voice recognition language">
+          <option value="en-IN" selected>Indian English</option>
+          <option value="en-US">US English</option>
+          <option value="en-GB">UK English</option>
+        </select>
       </div>
       <p id="voiceStatus" class="voice-status" aria-live="polite">Voice input: idle</p>
       <textarea id="combinationInput" rows="10" spellcheck="false"></textarea>
