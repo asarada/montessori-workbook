@@ -8,6 +8,7 @@ This is a simple learning project website that generates printable spelling work
 - Green Series combination pages (digraphs and vowel teams)
 - Sight words pages after all combinations
 - Custom combination editor (you can define your own sequence)
+- Voice input for custom combinations (speech-to-text)
 - Editable Word export (`.doc`) for further changes
 - One practice page format per combination:
   - Word list
@@ -33,6 +34,13 @@ Example:
 `Blue|sh|ship,shop,shell,fish`
 
 Then click **Apply Custom Combinations**.
+
+You can also use **Start Voice Input** in the custom editor section and speak your lines.
+Tips for speaking symbols:
+
+- Say "pipe" for `|`
+- Say "comma" for `,`
+- Say "new line" for a line break
 
 Use **Download Word (.doc)** to download an editable workbook file for Microsoft Word.
 

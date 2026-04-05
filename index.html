@@ -58,6 +58,16 @@
         <strong>Green|oa|boat,coat,goat</strong> (uses selected rows per page)<br />
         New words are generated from a grade-standard filtered dictionary with variation across beginning, middle, and end sound positions.
       </p>
+      <div class="voice-controls" aria-label="Voice input controls">
+        <button id="startVoiceBtn" type="button">Start Voice Input</button>
+        <button id="stopVoiceBtn" type="button" disabled>Stop</button>
+        <label for="voiceMode" class="voice-mode-label">Voice mode</label>
+        <select id="voiceMode" aria-label="Voice input mode">
+          <option value="append" selected>Append to text</option>
+          <option value="replace">Replace text</option>
+        </select>
+      </div>
+      <p id="voiceStatus" class="voice-status" aria-live="polite">Voice input: idle</p>
       <textarea id="combinationInput" rows="10" spellcheck="false"></textarea>
       <div class="editor-actions">
         <button id="applyCustomBtn" type="button" onclick="window.applyWorkbookCustom && window.applyWorkbookCustom()">Apply Custom Combinations</button>

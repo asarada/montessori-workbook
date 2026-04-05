@@ -88,6 +88,10 @@ const combinationInput = document.getElementById("combinationInput");
 const applyCustomBtn = document.getElementById("applyCustomBtn");
 const loadDefaultsBtn = document.getElementById("loadDefaultsBtn");
 const editorMessage = document.getElementById("editorMessage");
+const startVoiceBtn = document.getElementById("startVoiceBtn");
+const stopVoiceBtn = document.getElementById("stopVoiceBtn");
+const voiceMode = document.getElementById("voiceMode");
+const voiceStatus = document.getElementById("voiceStatus");
 const stats = document.getElementById("stats");
 const buildLabel = document.getElementById("buildLabel");
 
@@ -97,6 +101,150 @@ let externalDictionaryLoaded = false;
 let externalDictionaryLoadPromise = null;
 let commonWordsSet = new Set();
 let gradeStandardWords = [];
+const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let speechRecognition = null;
+let isVoiceListening = false;
+let voiceHasReplacedText = false;
+
+function setVoiceStatus(message, isError = false) {
+  if (!voiceStatus) {
+    return;
+  }
+
+  voiceStatus.textContent = message;
+  voiceStatus.classList.toggle("error", isError);
+}
+
+function updateVoiceButtons() {
+  if (!startVoiceBtn || !stopVoiceBtn) {
+    return;
+  }
+
+  startVoiceBtn.disabled = isVoiceListening;
+  stopVoiceBtn.disabled = !isVoiceListening;
+}
+
+function normalizeVoiceTranscript(transcript) {
+  if (!transcript) {
+    return "";
+  }
+
+  let normalized = transcript
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\b(new line|newline|line break|next line)\b/gi, "\n")
+    .replace(/\b(pipe|vertical bar)\b/gi, "|")
+    .replace(/\b(comma|coma)\b/gi, ",")
+    .replace(/\b(semicolon|semi colon)\b/gi, ";")
+    .replace(/\b(tab)\b/gi, "\t");
+
+  normalized = normalized.replace(/[ ]*\n[ ]*/g, "\n");
+  normalized = normalized.replace(/[ \t]{2,}/g, " ").trim();
+  return normalized;
+}
+
+function addVoiceText(transcriptText) {
+  const spokenText = normalizeVoiceTranscript(transcriptText);
+  if (!spokenText || !combinationInput) {
+    return;
+  }
+
+  const selectedMode = voiceMode ? voiceMode.value : "append";
+  if (selectedMode === "replace" && !voiceHasReplacedText) {
+    combinationInput.value = spokenText;
+    voiceHasReplacedText = true;
+  } else {
+    const needsNewLine =
+      selectedMode === "append" &&
+      combinationInput.value.trim().length > 0 &&
+      !combinationInput.value.endsWith("\n") &&
+      !spokenText.startsWith("\n");
+
+    combinationInput.value += `${needsNewLine ? "\n" : ""}${spokenText}`;
+  }
+
+  combinationInput.focus();
+  combinationInput.scrollTop = combinationInput.scrollHeight;
+}
+
+function stopVoiceInput() {
+  if (!speechRecognition || !isVoiceListening) {
+    isVoiceListening = false;
+    updateVoiceButtons();
+    return;
+  }
+
+  speechRecognition.stop();
+}
+
+function startVoiceInput() {
+  if (!speechRecognition) {
+    setVoiceStatus("Voice input not available in this browser.", true);
+    return;
+  }
+
+  if (isVoiceListening) {
+    return;
+  }
+
+  voiceHasReplacedText = false;
+  isVoiceListening = true;
+  updateVoiceButtons();
+  setVoiceStatus("Listening... Speak your combinations now.", false);
+
+  try {
+    speechRecognition.start();
+  } catch (error) {
+    isVoiceListening = false;
+    updateVoiceButtons();
+    setVoiceStatus(`Could not start voice input: ${error.message}`, true);
+  }
+}
+
+function initVoiceInput() {
+  if (!startVoiceBtn || !stopVoiceBtn) {
+    return;
+  }
+
+  if (!SpeechRecognitionClass) {
+    startVoiceBtn.disabled = true;
+    stopVoiceBtn.disabled = true;
+    setVoiceStatus("Voice input is not supported in this browser. Use Chrome, Edge, or Safari with speech enabled.", true);
+    return;
+  }
+
+  speechRecognition = new SpeechRecognitionClass();
+  speechRecognition.lang = "en-US";
+  speechRecognition.continuous = true;
+  speechRecognition.interimResults = false;
+
+  speechRecognition.onresult = (event) => {
+    const lastResult = event.results[event.results.length - 1];
+    if (!lastResult || !lastResult[0]) {
+      return;
+    }
+
+    addVoiceText(lastResult[0].transcript);
+    setVoiceStatus("Captured speech. Keep speaking or press Stop.", false);
+  };
+
+  speechRecognition.onerror = (event) => {
+    const isNoSpeech = event.error === "no-speech" || event.error === "aborted";
+    setVoiceStatus(
+      isNoSpeech ? "No speech detected yet. Keep speaking or try again." : `Voice input error: ${event.error}`,
+      !isNoSpeech
+    );
+  };
+
+  speechRecognition.onend = () => {
+    isVoiceListening = false;
+    updateVoiceButtons();
+    setVoiceStatus("Voice input: idle", false);
+  };
+
+  startVoiceBtn.addEventListener("click", startVoiceInput);
+  stopVoiceBtn.addEventListener("click", stopVoiceInput);
+  updateVoiceButtons();
+}
 
 function showEditorMessage(message, isError = false) {
   editorMessage.textContent = message;
@@ -733,5 +881,6 @@ window.downloadWorkbookWord = downloadWordDocument;
 window.regenerateWorkbookPages = regenerateFromCurrentInput;
 
 setBuildLabel();
+initVoiceInput();
 ensureExternalDictionaryLoaded();
 loadDefaultCombinations();
