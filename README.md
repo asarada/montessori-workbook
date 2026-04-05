@@ -44,6 +44,14 @@ Tips for speaking symbols:
 - Set **Accent** to **Indian English** for better recognition of native Indian pronunciation
 - Normal pauses now continue in the same line (no forced new line unless you say "new line")
 
+Hands-free voice commands (say these phrases):
+
+- "apply now" (apply custom combinations)
+- "load defaults" (reset to default Blue/Green combinations)
+- "regenerate pages"
+- "print workbook"
+- "download word"
+
 Use **Download Word (.doc)** to download an editable workbook file for Microsoft Word.
 
 ## Customize content

@@ -145,6 +145,84 @@ function normalizeVoiceTranscript(transcript) {
   return normalized;
 }
 
+function normalizeCommandText(transcript) {
+  return transcript
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function runVoiceCommand(commandLabel, action) {
+  setVoiceStatus(`Voice command: ${commandLabel}`, false);
+  action();
+}
+
+function handleVoiceCommand(transcriptText) {
+  const commandText = normalizeCommandText(transcriptText);
+  if (!commandText) {
+    return false;
+  }
+
+  const isApply =
+    /^(apply|apply now|apply combinations|apply custom combinations)$/.test(commandText) ||
+    commandText.includes("apply now");
+  if (isApply) {
+    runVoiceCommand("Apply Custom Combinations", () => {
+      if (typeof applyCustomCombinations === "function") {
+        applyCustomCombinations();
+      }
+    });
+    return true;
+  }
+
+  const isLoadDefaults =
+    /^(load defaults|load default combinations|reset defaults|default combinations)$/.test(commandText) ||
+    commandText.includes("load defaults");
+  if (isLoadDefaults) {
+    runVoiceCommand("Load Default Combinations", () => {
+      if (typeof loadDefaultCombinations === "function") {
+        loadDefaultCombinations();
+      }
+    });
+    return true;
+  }
+
+  const isRegenerate =
+    /^(regenerate|regenerate pages|refresh pages|refresh workbook)$/.test(commandText) ||
+    commandText.includes("regenerate");
+  if (isRegenerate) {
+    runVoiceCommand("Regenerate Pages", () => {
+      if (typeof regenerateFromCurrentInput === "function") {
+        regenerateFromCurrentInput();
+      }
+    });
+    return true;
+  }
+
+  const isPrint =
+    /^(print|print workbook|print page|print pages)$/.test(commandText) ||
+    commandText.includes("print workbook");
+  if (isPrint) {
+    runVoiceCommand("Print Workbook", () => window.print());
+    return true;
+  }
+
+  const isDownload =
+    /^(download|download word|download document|download workbook)$/.test(commandText) ||
+    commandText.includes("download word");
+  if (isDownload) {
+    runVoiceCommand("Download Word Document", () => {
+      if (typeof downloadWordDocument === "function") {
+        downloadWordDocument();
+      }
+    });
+    return true;
+  }
+
+  return false;
+}
+
 function addVoiceText(transcriptText) {
   const spokenText = normalizeVoiceTranscript(transcriptText);
   if (!spokenText || !combinationInput) {
@@ -231,7 +309,12 @@ function initVoiceInput() {
       return;
     }
 
-    addVoiceText(lastResult[0].transcript);
+    const transcript = lastResult[0].transcript || "";
+    if (handleVoiceCommand(transcript)) {
+      return;
+    }
+
+    addVoiceText(transcript);
     setVoiceStatus("Captured speech. Keep speaking or press Stop.", false);
   };
 
