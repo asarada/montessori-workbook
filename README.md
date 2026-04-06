@@ -1,4 +1,4 @@
-# Montessori Spelling Workbook (Grade 1-2)
+# Montessori Spelling Workbook
 
 This is a simple learning project website that generates printable spelling workbook pages for students.
 
@@ -6,7 +6,6 @@ This is a simple learning project website that generates printable spelling work
 
 - Blue Series combination pages (phonetic combinations)
 - Green Series combination pages (digraphs and vowel teams)
-- Sight words pages after all combinations
 - Custom combination editor (you can define your own sequence)
 - Voice input for custom combinations (speech-to-text)
 - Editable Word export (`.doc`) for further changes
@@ -20,7 +19,7 @@ This is a simple learning project website that generates printable spelling work
 No build tools needed.
 
 1. Open `index.html` in your browser.
-2. Choose grade level and rows-per-page.
+2. Choose rows-per-page.
 3. Click **Print Workbook**.
 
 ## Custom combinations format
@@ -74,8 +73,6 @@ Edit `script.js` and update:
 
 - `BLUE_SERIES`
 - `GREEN_SERIES`
-- `SIGHT_WORDS_GRADE_1`
-- `SIGHT_WORDS_GRADE_2`
 
 You can align these lists exactly with your Montessori Blue and Green sequence.
 

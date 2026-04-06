@@ -26,19 +26,6 @@ const GREEN_SERIES = [
   { combo: "er", words: ["her", "term", "fern", "verb", "river", "winter", "hammer", "sister"] }
 ];
 
-const SIGHT_WORDS_GRADE_1 = [
-  "a", "and", "are", "at", "big", "blue", "can", "come", "do", "down", "find", "for", "fun", "go",
-  "has", "he", "here", "I", "in", "is", "it", "jump", "like", "little", "look", "make", "me", "my",
-  "no", "not", "of", "on", "play", "red", "run", "said", "see", "she", "the", "to", "up", "we", "you"
-];
-
-const SIGHT_WORDS_GRADE_2 = [
-  "about", "after", "again", "always", "around", "because", "before", "best", "both", "buy", "call", "cold",
-  "does", "don\u2019t", "fast", "first", "found", "gave", "goes", "green", "its", "made", "many", "off", "or",
-  "pull", "read", "right", "sing", "sit", "sleep", "tell", "their", "these", "those", "upon", "us", "use", "very",
-  "wash", "which", "why", "wish", "work", "would", "write", "your"
-];
-
 const EXTERNAL_DICTIONARY_URL = "https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt";
 const COMMON_WORDS_URL = "https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/google-10000-english-no-swears.txt";
 
@@ -79,7 +66,6 @@ const WORD_BANK = [
 ];
 
 const workbookContainer = document.getElementById("workbook");
-const gradeFilter = document.getElementById("gradeFilter");
 const rowsPerPage = document.getElementById("rowsPerPage");
 const regenerateBtn = document.getElementById("regenerateBtn");
 const printBtn = document.getElementById("printBtn");
@@ -849,7 +835,7 @@ function generateNewWords(combo, existingWords, rowCount) {
 
   const sourceWords = externalDictionaryLoaded && gradeStandardWords.length
     ? [...gradeStandardWords]
-    : [...WORD_BANK, ...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2].map((word) => word.toLowerCase());
+    : [...WORD_BANK].map((word) => word.toLowerCase());
 
   const priorityWords = (COMBO_PRIORITY_WORDS[loweredCombo] || []).map((word) => word.toLowerCase());
   const mergedSource = uniqueWords([...priorityWords, ...sourceWords]);
@@ -989,58 +975,8 @@ function buildCombinationPage(seriesName, className, combo, words, rowCount) {
   return page;
 }
 
-function chunkArray(items, chunkSize) {
-  const result = [];
-  for (let i = 0; i < items.length; i += chunkSize) {
-    result.push(items.slice(i, i + chunkSize));
-  }
-  return result;
-}
-
-function buildSightWordPage(words, label) {
-  const page = document.createElement("article");
-  page.className = "page";
-
-  page.innerHTML = `
-    <div class="page-header">
-      <h2 class="page-title">Sight Words Practice (${label})</h2>
-      <span class="tag sight">Sight Words</span>
-    </div>
-    <table class="practice-table sight-table">
-      <colgroup>
-        <col class="sight-col-word" />
-        <col class="sight-col-practice" />
-        <col class="sight-col-sentence" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Sight Word</th>
-          <th>Practice</th>
-          <th>Use in Sentence</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${words
-          .map(
-            (word) => `
-          <tr>
-            <td>${word}</td>
-            <td><div class="new-word-line"></div></td>
-            <td><div class="new-word-line"></div></td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-
-  return page;
-}
-
 function renderWorkbook() {
   const rowCount = Number(rowsPerPage.value);
-  const gradeValue = gradeFilter.value;
 
   workbookContainer.innerHTML = "";
 
@@ -1058,30 +994,8 @@ function renderWorkbook() {
       return emptyCount > 0 ? `${item.combo}: ${emptyCount} row(s) need manual fill` : "";
     })
     .filter(Boolean);
-
-  let sightWords = [];
-  let sightLabel = "Grade 1 + Grade 2";
-
-  if (gradeValue === "1") {
-    sightWords = SIGHT_WORDS_GRADE_1;
-    sightLabel = "Grade 1";
-  } else if (gradeValue === "2") {
-    sightWords = SIGHT_WORDS_GRADE_2;
-    sightLabel = "Grade 2";
-  } else {
-    sightWords = [...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2];
-  }
-
-  sightWords = uniqueWords(sightWords);
-
-  const sightChunks = chunkArray(sightWords, rowCount);
-  sightChunks.forEach((chunk, index) => {
-    workbookContainer.appendChild(buildSightWordPage(chunk, `${sightLabel} - Page ${index + 1}`));
-  });
-
   const totalCombinationPages = activeCombinations.length;
-  const totalSightPages = sightChunks.length;
-  stats.textContent = `Total pages: ${totalCombinationPages + totalSightPages} (${totalCombinationPages} combinations + ${totalSightPages} sight words)`;
+  stats.textContent = `Total pages: ${totalCombinationPages} (${totalCombinationPages} combinations)`;
 
   if (shortRows.length) {
     showEditorMessage(`Note: Not enough strict dictionary matches for some combinations. ${shortRows.join(" | ")}`, true);
@@ -1216,9 +1130,6 @@ if (combinationFileInput) {
 
     previewFileObject(file);
   });
-}
-if (gradeFilter) {
-  gradeFilter.addEventListener("change", renderWorkbook);
 }
 if (rowsPerPage) {
   rowsPerPage.addEventListener("change", renderWorkbook);
