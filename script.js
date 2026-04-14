@@ -26,6 +26,21 @@ const GREEN_SERIES = [
   { combo: "er", words: ["her", "term", "fern", "verb", "river", "winter", "hammer", "sister"] }
 ];
 
+const SIGHT_WORDS_GRADE_1 = [
+  "a", "and", "are", "at", "big", "blue", "can", "come", "do", "down", "find", "for", "go",
+  "has", "he", "here", "I", "in", "is", "it", "like", "little", "look", "make", "me", "my",
+  "no", "not", "of", "on", "play", "red", "run", "said", "see", "she", "the", "to", "up", "we", "you"
+];
+
+const SIGHT_WORDS_GRADE_2 = [
+  "about", "after", "again", "always", "around", "because", "before", "best", "both", "buy", "call", "cold",
+  "does", "don't", "fast", "first", "found", "gave", "goes", "green", "its", "made", "many", "off", "or",
+  "pull", "read", "right", "sing", "sit", "sleep", "tell", "their", "these", "those", "upon", "us", "use", "very",
+  "wash", "which", "why", "wish", "work", "would", "write", "your"
+];
+
+const CVC_ONSETS = ["b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "z"];
+
 const EXTERNAL_DICTIONARY_URL = "https://cdn.jsdelivr.net/gh/dwyl/english-words@master/words_alpha.txt";
 const COMMON_WORDS_URL = "https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/google-10000-english-no-swears.txt";
 
@@ -488,6 +503,10 @@ function parseCustomCombinations(inputText) {
     const normalizedLine = line.replace(/\s*[-:]\s*/, "|");
     const parts = normalizedLine.split("|").map((part) => part.trim());
 
+    if (parts[0] && parts[0].toLowerCase() === "pattern") {
+      return parsePatternLine(parts, index + 1);
+    }
+
     let seriesNameRaw = "Custom";
     let comboRaw = "";
     let wordsRaw = "";
@@ -527,9 +546,116 @@ function parseCustomCombinations(inputText) {
       className: mapSeriesToClass(cleanSeries),
       combo: comboRaw,
       words,
-      rowCount
+      rowCount,
+      autoGenerate: true
     };
   });
+}
+
+function parsePatternLine(parts, lineNumber) {
+  if (parts.length < 3 || parts.length > 4) {
+    throw new Error(`Line ${lineNumber}: use Pattern|CVC|seed|rows OR Pattern|Sight|grade1|rows`);
+  }
+
+  const patternType = (parts[1] || "").toLowerCase();
+  const patternValueRaw = parts[2] || "";
+  const rowCountRaw = parts[3] || "";
+
+  let rowCount = null;
+  if (rowCountRaw) {
+    const parsed = Number(rowCountRaw);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new Error(`Line ${lineNumber}: rows must be a positive whole number.`);
+    }
+    rowCount = parsed;
+  }
+
+  if (patternType === "cvc") {
+    const words = generateCvcPatternWords(patternValueRaw, rowCount || 24);
+    if (!words.length) {
+      throw new Error(`Line ${lineNumber}: could not generate CVC words from "${patternValueRaw}".`);
+    }
+
+    return {
+      seriesName: "Cvc Pattern",
+      className: "custom",
+      combo: patternValueRaw.toLowerCase(),
+      words,
+      rowCount,
+      autoGenerate: false
+    };
+  }
+
+  if (patternType === "sight") {
+    const words = generateSightPatternWords(patternValueRaw);
+    if (!words.length) {
+      throw new Error(`Line ${lineNumber}: could not generate sight words from "${patternValueRaw}".`);
+    }
+
+    return {
+      seriesName: "Sight Pattern",
+      className: "custom",
+      combo: "sight",
+      words,
+      rowCount,
+      autoGenerate: false
+    };
+  }
+
+  throw new Error(`Line ${lineNumber}: unknown pattern type "${parts[1]}". Use CVC or Sight.`);
+}
+
+function generateCvcPatternWords(seed, targetCount) {
+  const cleanedSeed = String(seed || "").toLowerCase().replace(/[^a-z]/g, "");
+  const target = Math.max(Number(targetCount) || 12, 1);
+
+  const generated = [];
+  const seen = new Set();
+
+  const pushWord = (word) => {
+    if (/^[a-z]{3}$/.test(word) && !seen.has(word)) {
+      generated.push(word);
+      seen.add(word);
+    }
+  };
+
+  // For common Montessori CVC patterns, allow a 2-letter VC seed like "at" to produce "cat", "bat", etc.
+  if (cleanedSeed.length === 2) {
+    CVC_ONSETS.forEach((onset) => pushWord(`${onset}${cleanedSeed}`));
+  } else if (cleanedSeed.length === 3) {
+    const middle = cleanedSeed[1];
+    const ending = cleanedSeed[2];
+    CVC_ONSETS.forEach((onset) => pushWord(`${onset}${middle}${ending}`));
+    pushWord(cleanedSeed);
+  }
+
+  if (!generated.length) {
+    return [];
+  }
+
+  return generated.slice(0, target);
+}
+
+function generateSightPatternWords(spec) {
+  const raw = String(spec || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (["grade1", "grade 1", "g1", "1"].includes(normalized)) {
+    return [...SIGHT_WORDS_GRADE_1];
+  }
+  if (["grade2", "grade 2", "g2", "2"].includes(normalized)) {
+    return [...SIGHT_WORDS_GRADE_2];
+  }
+  if (["both", "all", "grade1+grade2", "grade 1+grade 2", "1+2"].includes(normalized)) {
+    return uniqueWords([...SIGHT_WORDS_GRADE_1, ...SIGHT_WORDS_GRADE_2]);
+  }
+
+  const customWords = raw
+    .split(/[,;]+/)
+    .map((word) => word.trim().toLowerCase())
+    .filter((word) => /^[a-z']+$/.test(word));
+
+  return uniqueWords(customWords);
 }
 
 function sanitizeUploadedContent(rawText) {
@@ -597,7 +723,9 @@ function buildTemplateText() {
     "# Format: Series|Combination|word1,word2,word3|Rows(optional)",
     "Blue|sh|ship,shop,shell,fish|12",
     "Green|oa|boat,coat,goat,road",
-    "nk|bank,sink,pink,think"
+    "nk|bank,sink,pink,think",
+    "Pattern|CVC|at|12",
+    "Pattern|Sight|grade1|12"
   ].join("\n");
 }
 
@@ -909,11 +1037,19 @@ function generateNewWords(combo, existingWords, rowCount) {
   return result.slice(0, rowCount);
 }
 
-function buildWordListForRows(combo, sampleWords, rowCount) {
+function buildWordListForRows(combo, sampleWords, rowCount, autoGenerate = true) {
   const normalizedSamples = uniqueWords(sampleWords.map((word) => word.trim()).filter(Boolean));
 
   if (normalizedSamples.length >= rowCount) {
     return normalizedSamples.slice(0, rowCount);
+  }
+
+  if (!autoGenerate) {
+    const rows = [...normalizedSamples].slice(0, rowCount);
+    while (rows.length < rowCount) {
+      rows.push("");
+    }
+    return rows;
   }
 
   const additionalNeeded = rowCount - normalizedSamples.length;
@@ -937,11 +1073,11 @@ function buildWordListForRows(combo, sampleWords, rowCount) {
   return rows;
 }
 
-function buildCombinationPage(seriesName, className, combo, words, rowCount) {
+function buildCombinationPage(seriesName, className, combo, words, rowCount, autoGenerate = true) {
   const page = document.createElement("article");
   page.className = "page";
 
-  const rows = buildWordListForRows(combo, words, rowCount);
+  const rows = buildWordListForRows(combo, words, rowCount, autoGenerate);
 
   page.innerHTML = `
     <div class="page-header">
@@ -983,13 +1119,15 @@ function renderWorkbook() {
   activeCombinations.forEach((item) => {
     const label = item.seriesName.endsWith("Series") ? item.seriesName : `${item.seriesName} Series`;
     const comboRows = item.rowCount || rowCount;
-    workbookContainer.appendChild(buildCombinationPage(label, item.className, item.combo, item.words, comboRows));
+    workbookContainer.appendChild(
+      buildCombinationPage(label, item.className, item.combo, item.words, comboRows, item.autoGenerate !== false)
+    );
   });
 
   const shortRows = activeCombinations
     .map((item) => {
       const comboRows = item.rowCount || rowCount;
-      const list = buildWordListForRows(item.combo, item.words, comboRows);
+      const list = buildWordListForRows(item.combo, item.words, comboRows, item.autoGenerate !== false);
       const emptyCount = list.filter((word) => !word).length;
       return emptyCount > 0 ? `${item.combo}: ${emptyCount} row(s) need manual fill` : "";
     })

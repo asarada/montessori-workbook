@@ -40,6 +40,9 @@ Each non-empty line should use one of these formats:
 - `Series|Combination|word1,word2,word3|Rows(optional)`
 - `Series|Combination|word1,word2,word3`
 - `Combination|word1,word2,word3`
+- `Pattern|CVC|at|12` (auto-generate CVC words for the pattern)
+- `Pattern|Sight|grade1|12` (auto-load sight words by grade)
+- `Pattern|Sight|the,and,was,said|12` (custom sight words)
 
 Notes:
 
